@@ -1,0 +1,639 @@
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/jwt/LoginFilter.java>
+public class LoginFilter extends UsernamePasswordAuthenticationFilter {
+
+    private final AuthenticationManager authenticationManager;
+    private final JWTUtil jwtUtil;
+
+    public LoginFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil) {
+
+        this.authenticationManager = authenticationManager;
+        this.jwtUtil = jwtUtil;
+    }
+
+    @Override
+    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
+
+        String username = obtainUsername(request);
+        String password = obtainPassword(request);
+
+        System.out.println(username);
+
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, password, null);
+
+        return authenticationManager.authenticate(authToken);
+    }
+
+    @Override
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/jwt/LoginFilter.java>
+package com.example.springjwt.jwt;
+
+import com.example.springjwt.dto.CustomUserDetails;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import java.util.Collection;
+import java.util.Iterator;
+
+public class LoginFilter extends UsernamePasswordAuthenticationFilter {
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/controller/JoinController.java>
+package com.example.springjwt.controller;
+
+import com.example.springjwt.dto.JoinDTO;
+import com.example.springjwt.service.JoinService;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+@Controller
+@ResponseBody
+public class JoinController {
+
+    private final JoinService joinService;
+
+    public JoinController(JoinService joinService) {
+
+        this.joinService = joinService;
+    }
+
+    @PostMapping("/join")
+    public String joinProcess(JoinDTO joinDTO) {
+
+        joinService.joinProcess(joinDTO);
+
+        return "ok";
+    }
+}
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/controller/MainController.java>
+@Controller
+@ResponseBody
+public class MainController {
+
+    @GetMapping("/")
+    public String mainP() {
+
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+        Iterator<? extends GrantedAuthority> iter = authorities.iterator();
+        GrantedAuthority auth = iter.next();
+        String role = auth.getAuthority();
+
+        return "Main Controller" +username + role;
+    }
+}
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/controller/MainController.java>
+package com.example.springjwt.controller;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.util.Collection;
+import java.util.Iterator;
+
+@Controller
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/dto/JoinDTO.java>
+package com.example.springjwt.dto;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
+public class JoinDTO {
+
+    private String username;
+    private String password;
+}
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/service/JoinService.java>
+@Service
+public class JoinService {
+
+    private final UserRepository userRepository;
+    private final BCryptPasswordEncoder bCryptPasswordEncoder;
+
+    public JoinService(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder) {
+
+        this.userRepository = userRepository;
+        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+    }
+
+    public void joinProcess(JoinDTO joinDTO) {
+
+        String username = joinDTO.getUsername();
+        String password = joinDTO.getPassword();
+
+        Boolean isExist = userRepository.existsByUsername(username);
+
+        if (isExist) {
+
+            return;
+        }
+
+        UserEntity data = new UserEntity();
+
+        data.setUsername(username);
+        data.setPassword(bCryptPasswordEncoder.encode(password));
+        data.setRole("ROLE_ADMIN");
+
+        userRepository.save(data);
+    }
+}
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/controller/AdminController.java>
+package com.example.springjwt.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+@Controller
+@ResponseBody
+public class AdminController {
+
+    @GetMapping("/admin")
+    public String adminP() {
+
+        return "Admin Controller";
+    }
+}
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/jwt/LoginFilter.java>
+    @Override
+    protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authentication) {
+
+        CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
+
+        String username = customUserDetails.getUsername();
+
+        Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+        Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
+        GrantedAuthority auth = iterator.next();
+
+        String role = auth.getAuthority();
+
+
+        String token = jwtUtil.createJwt(username, role, 60*60*10L);
+
+        response.addHeader("Authorization", "Bearer " + token);
+    }
+
+    @Override
+    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
+
+        response.setStatus(401);
+    }
+}
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/config/SecurityConfig.java>
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+        //csrf disable
+        http
+                .csrf((auth) -> auth.disable());
+
+        //From 로그인 방식 disable
+        http
+                .formLogin((auth) -> auth.disable());
+
+        //http basic 인증 방식 disable
+        http
+                .httpBasic((auth) -> auth.disable());
+
+
+        http
+                .authorizeHttpRequests((auth) -> auth
+                        .requestMatchers("/login", "/", "/join" ).permitAll()
+                        .requestMatchers("/admin").hasRole("ADMIN")
+
+                        .anyRequest().authenticated());
+
+        http
+                .addFilterBefore(new JWTFilter(jwtUtil), LoginFilter.class);
+        http
+                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtUtil), UsernamePasswordAuthenticationFilter.class);
+
+        //세션 설정
+        http
+                .sessionManagement((session) -> session
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/service/JoinService.java>
+package com.example.springjwt.service;
+
+import com.example.springjwt.dto.JoinDTO;
+import com.example.springjwt.entity.UserEntity;
+import com.example.springjwt.repository.UserRepository;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+
+@Service
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/dto/CustomUserDetails.java>
+    @Override
+    public boolean isEnabled() {
+
+        return true;
+    }
+}
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/dto/CustomUserDetails.java>
+public class CustomUserDetails  implements UserDetails {
+
+    private final UserEntity userEntity;
+
+    public CustomUserDetails(UserEntity userEntity) {
+
+        this.userEntity = userEntity;
+    }
+
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+
+        Collection<GrantedAuthority> collection = new ArrayList<>();
+
+        collection.add(new GrantedAuthority() {
+
+            @Override
+            public String getAuthority() {
+
+                return userEntity.getRole();
+            }
+        });
+
+        return collection;
+    }
+
+    @Override
+    public String getPassword() {
+
+        return userEntity.getPassword();
+    }
+
+    @Override
+    public String getUsername() {
+
+        return userEntity.getUsername();
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+
+        return true;
+    }
+
+    @Override
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/config/SecurityConfig.java>
+package com.example.springjwt.config;
+
+import com.example.springjwt.jwt.JWTFilter;
+import com.example.springjwt.jwt.JWTUtil;
+import com.example.springjwt.jwt.LoginFilter;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/jwt/JWTFilter.java>
+package com.example.springjwt.jwt;
+
+import com.example.springjwt.dto.CustomUserDetails;
+import com.example.springjwt.entity.UserEntity;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+
+public class JWTFilter extends OncePerRequestFilter {
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/config/SecurityConfig.java>
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    private final AuthenticationConfiguration authenticationConfiguration;
+    private final JWTUtil jwtUtil;
+
+    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, JWTUtil jwtUtil) {
+
+        this.authenticationConfiguration = authenticationConfiguration;
+        this.jwtUtil = jwtUtil;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+
+        return configuration.getAuthenticationManager();
+    }
+
+    @Bean
+    public BCryptPasswordEncoder bCryptPasswordEncoder() {
+
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/service/CustomUserDetailsService.java>
+package com.example.springjwt.service;
+
+import com.example.springjwt.dto.CustomUserDetails;
+import com.example.springjwt.entity.UserEntity;
+import com.example.springjwt.repository.UserRepository;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+@Service
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/dto/CustomUserDetails.java>
+package com.example.springjwt.dto;
+
+import com.example.springjwt.entity.UserEntity;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.ArrayList;
+import java.util.Collection;
+
+public class CustomUserDetails  implements UserDetails {
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/jwt/JWTFilter.java>
+        CustomUserDetails customUserDetails = new CustomUserDetails(userEntity);
+
+        Authentication authToken = new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
+
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+
+        filterChain.doFilter(request, response);
+    }
+}
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/entity/UserEntity.java>
+package com.example.springjwt.entity;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import lombok.Getter;
+import lombok.Setter;
+
+@Entity
+@Setter
+@Getter
+public class UserEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    private String username;
+    private String password;
+
+    private String role;
+}
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/service/CustomUserDetailsService.java>
+@Service
+public class CustomUserDetailsService implements UserDetailsService {
+
+    private final UserRepository userRepository;
+
+    public CustomUserDetailsService(UserRepository userRepository) {
+
+        this.userRepository = userRepository;
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+
+        UserEntity userData = userRepository.findByUsername(username);
+
+        if (userData != null) {
+
+            return new CustomUserDetails(userData);
+        }
+
+
+        return null;
+    }
+}
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/jwt/JWTFilter.java>
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+
+        //request에서 Authorization 헤더를 찾음
+        String authorization= request.getHeader("Authorization");
+
+        //Authorization 헤더 검증
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+
+            System.out.println("token null");
+            filterChain.doFilter(request, response);
+
+            //조건이 해당되면 메소드 종료 (필수)
+            return;
+        }
+
+        String token = authorization.split(" ")[1];
+
+        //토큰 소멸 시간 검증
+        if (jwtUtil.isExpired(token)) {
+
+            System.out.println("token expired");
+            filterChain.doFilter(request, response);
+
+            //조건이 해당되면 메소드 종료 (필수)
+            return;
+        }
+
+
+        String username = jwtUtil.getUsername(token);
+        String role = jwtUtil.getRole(token);
+
+        UserEntity userEntity = new UserEntity();
+        userEntity.setUsername(username);
+        userEntity.setPassword("temppassword");
+        userEntity.setRole(role);
+
+        CustomUserDetails customUserDetails = new CustomUserDetails(userEntity);
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/SpringJwtApplication.java>
+package com.example.springjwt;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class SpringJwtApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(SpringJwtApplication.class, args);
+    }
+
+}
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/repository/UserRepository.java>
+package com.example.springjwt.repository;
+
+import com.example.springjwt.entity.UserEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UserRepository extends JpaRepository<UserEntity, Integer> {
+
+    Boolean existsByUsername(String username);
+
+    UserEntity findByUsername(String username);
+}
+
+</passage>
+<passage file_path=/SpringJWT/src/test/java/com/example/springjwt/SpringJwtApplicationTests.java>
+package com.example.springjwt;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class SpringJwtApplicationTests {
+
+    @Test
+    void contextLoads() {
+    }
+
+}
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/jwt/JWTUtil.java>
+@Component
+public class JWTUtil {
+
+    private SecretKey secretKey;
+
+    public JWTUtil(@Value("${spring.jwt.secret}")String secret) {
+
+        this.secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm());
+    }
+
+    public String getUsername(String token) {
+
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("username", String.class);
+    }
+
+    public String getRole(String token) {
+
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("role", String.class);
+    }
+
+    public Boolean isExpired(String token) {
+
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().getExpiration().before(new Date());
+    }
+
+
+    public String createJwt(String username, String role, Long expiredMs) {
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/jwt/JWTUtil.java>
+package com.example.springjwt.jwt;
+
+import io.jsonwebtoken.Jwts;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+
+@Component
+
+</passage>
+<passage file_path=/SpringJWT/src/main/java/com/example/springjwt/jwt/JWTUtil.java>
+    public String createJwt(String username, String role, Long expiredMs) {
+
+        return Jwts.builder()
+                .claim("username", username)
+                .claim("role", role)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + expiredMs))
+                .signWith(secretKey)
+                .compact();
+    }
+}
+
+</passage>
+<passage file_path=/README.md>
+# node-connection-backend
+node-connection 프로젝트 백엔드 저장소입니다.
+</passage>
